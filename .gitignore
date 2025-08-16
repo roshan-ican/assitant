@@ -1,5 +1,9 @@
 .env
-# .env
+__pycache__/
+*.pyc
+.venv/
+tasks.db
+user_models/
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
