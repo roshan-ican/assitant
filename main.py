@@ -45,5 +45,37 @@ async def add_task(data: dict):
         "predicted_category": predicted_category
     }
 
+
+@app.post("/tasks/bulk")
+async def create_bulk_tasks(data: dict):
+    """Create multiple tasks at once"""
+    tasks = data.get('tasks', [])
+    user_id = data.get('user_id')
+
+    if not tasks or not user_id:
+        raise HTTPException(status_code=400, detail="tasks array and user_id required")
+
+    created_tasks = []
+
+    for task_text in tasks:
+        if task_text.strip():  # Skip empty tasks
+            # Predict category
+            predicted_category = learner.predict_category(task_text, user_id)
+
+            # Create in Notion
+            notion_page = notion.create_task(user_id, task_text, predicted_category)
+
+            # Save for ML
+            storage.save_ml_data(user_id, task_text, notion_page['id'])
+            learner.learn_from_task(task_text, user_id)
+
+            created_tasks.append({
+                "notion_id": notion_page['id'],
+                "text": task_text,
+                "category": predicted_category
+            })
+
+    return {"created_tasks": created_tasks, "count": len(created_tasks)}
+
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
